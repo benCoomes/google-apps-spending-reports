@@ -40,10 +40,11 @@ function loadVendors(vendorSheetName = "Vendors") {
 
 // private: categorize a transactions array given vendors and a config.
 function categorizeTransactions(transactions, transactionConfig, vendors) {
-  const header = transactions[0]
-  const descIndex = header.indexOf(transactionConfig.descColName)
-  const vendorIndex = header.indexOf(transactionConfig.vendorColName)
-  const catIndex = header.indexOf(transactionConfig.catColName)
+  const header = transactions[0];
+  const descIndex = header.indexOf(transactionConfig.descColName);
+  const vendorIndex = header.indexOf(transactionConfig.vendorColName);
+  const catIndex = header.indexOf(transactionConfig.catColName);
+  const manualIndex = header.indexOf(transactionConfig.manualColName);
 
   if(descIndex < 0) {
     return 'Missing column titled: "' + transactionConfig.descColName + '" on transaction sheet.';
@@ -54,32 +55,41 @@ function categorizeTransactions(transactions, transactionConfig, vendors) {
   if(catIndex < 0) {
     return 'Missing column titled: "' + transactionConfig.catColName + '" on transaction sheet.';
   }
+  if(manualIndex < 0) {
+    return 'Missing column title: "' + transactionConfig.manualColName + '" on transaction sheet'
+  }
 
   for(let r = 1; r < transactions.length; r++) {
     row = transactions[r];
-    currVendorCell = row[vendorIndex]
-    currCatCell = row[catIndex]
-    desc = row[descIndex]
-    if(!desc || currVendorCell || currCatCell) {
+    currVendorCell = row[vendorIndex];
+    currCatCell = row[catIndex];
+    desc = row[descIndex];
+    isManualEntry = row[manualIndex];
+
+    if(isManualEntry) {
       continue;
     }
     
     vendor = vendors.find(v => v.pattern.test(desc))
-    if(vendor) {
-      row[vendorIndex] = vendor.name
-      row[catIndex] = vendor.category
-    }
+    row[vendorIndex] = vendor?.name;
+    row[catIndex] = vendor?.category;
   }
 }
 
 // Public: Categorize all values, unless category or vendor is already set.
-function categorizeAll(descColName = 'Description', vendorColName = 'Vendor', catColName = 'Category', vendorSheetName = 'Vendors') {  
+function categorizeAll(
+  descColName = 'Description', 
+  vendorColName = 'Vendor', 
+  catColName = 'Category', 
+  manualColName = 'Manual', 
+  vendorSheetName = 'Vendors') {  
+  
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet =  ss.getActiveSheet();
   const dataRange = sheet.getDataRange();
   const transactions = dataRange.getValues();
   
-  let [vendors, error] = loadVendors(vendorSheetName)
+  let [vendors, error] = loadVendors(vendorSheetName);
   if(error) {
     SpreadsheetApp.getUi().alert("Error loading vendors: " + error);
     return;
@@ -88,12 +98,13 @@ function categorizeAll(descColName = 'Description', vendorColName = 'Vendor', ca
   let transactionConfig = {
     descColName: descColName,
     vendorColName: vendorColName,
-    catColName: catColName
-  }
-  error = categorizeTransactions(transactions, transactionConfig, vendors)
+    catColName: catColName,
+    manualColName: manualColName
+  };
+  error = categorizeTransactions(transactions, transactionConfig, vendors);
   if(error) {
     SpreadsheetApp.getUi().alert('Error categorizing transactions: ' + error);
   }
   
-  dataRange.setValues(transactions)
+  dataRange.setValues(transactions);
 }
