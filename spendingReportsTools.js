@@ -6,7 +6,7 @@ function onOpen() {
       .addToUi();
 }
 
-// loads vendors from the specified sheet
+// private: loads vendors from the specified sheet
 // returns [vendors, error], where vendors is an array of {name, category, pattern} objects, and error is a string.
 function loadVendors(vendorSheetName = "Vendors") {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -38,37 +38,21 @@ function loadVendors(vendorSheetName = "Vendors") {
   return [vendors, null];
 }
 
-// Categorize all values, unless category or vendor is already set.
-function categorizeAll(descColName = 'Description', vendorColName = 'Vendor', catColName = 'Category', vendorSheetName = 'Vendors') {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  const sheet =  ss.getActiveSheet();
-
-  const dataRange = sheet.getDataRange();
-  const transactions = dataRange.getValues()
-  
+// private: categorize a transactions array given vendors and a config.
+function categorizeTransactions(transactions, transactionConfig, vendors) {
   const header = transactions[0]
-  const descIndex = header.indexOf(descColName)
-  const vendorIndex = header.indexOf(vendorColName)
-  const catIndex = header.indexOf(catColName)
+  const descIndex = header.indexOf(transactionConfig.descColName)
+  const vendorIndex = header.indexOf(transactionConfig.vendorColName)
+  const catIndex = header.indexOf(transactionConfig.catColName)
 
   if(descIndex < 0) {
-    SpreadsheetApp.getUi().alert('Missing column titled: "' + descColName + '".');
-    return;
+    return 'Missing column titled: "' + transactionConfig.descColName + '" on transaction sheet.';
   }
   if(vendorIndex < 0) {
-    SpreadsheetApp.getUi().alert('Missing column titled: "' + vendorColName + '".');
-    return;
+    return 'Missing column titled: "' + transactionConfig.vendorColName + '" on transaction sheet.';
   }
   if(catIndex < 0) {
-    SpreadsheetApp.getUi().alert('Missing column titled: "' + catColName + '".');
-    return;
-  }
-
-  const [vendors, error] = loadVendors(vendorSheetName)
-  if(error) {
-    SpreadsheetApp.getUi().alert("Error loading vendors: " + error);
-    return;
+    return 'Missing column titled: "' + transactionConfig.catColName + '" on transaction sheet.';
   }
 
   for(let r = 1; r < transactions.length; r++) {
@@ -86,6 +70,30 @@ function categorizeAll(descColName = 'Description', vendorColName = 'Vendor', ca
       row[catIndex] = vendor.category
     }
   }
+}
+
+// Public: Categorize all values, unless category or vendor is already set.
+function categorizeAll(descColName = 'Description', vendorColName = 'Vendor', catColName = 'Category', vendorSheetName = 'Vendors') {  
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet =  ss.getActiveSheet();
+  const dataRange = sheet.getDataRange();
+  const transactions = dataRange.getValues();
   
-   dataRange.setValues(transactions)
+  let [vendors, error] = loadVendors(vendorSheetName)
+  if(error) {
+    SpreadsheetApp.getUi().alert("Error loading vendors: " + error);
+    return;
+  }
+  
+  let transactionConfig = {
+    descColName: descColName,
+    vendorColName: vendorColName,
+    catColName: catColName
+  }
+  error = categorizeTransactions(transactions, transactionConfig, vendors)
+  if(error) {
+    SpreadsheetApp.getUi().alert('Error categorizing transactions: ' + error);
+  }
+  
+  dataRange.setValues(transactions)
 }
