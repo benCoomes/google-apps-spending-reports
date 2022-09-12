@@ -66,7 +66,7 @@ function categorizeTransactions(transactions, transactionConfig, vendors) {
     desc = row[descIndex];
     isManualEntry = row[manualIndex];
 
-    if(isManualEntry) {
+    if(isManualEntry || !desc) {
       continue;
     }
     
