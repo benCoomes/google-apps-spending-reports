@@ -47,18 +47,19 @@ function categorizeTransactions(transactions, transactionConfig, vendors) {
   const manualIndex = header.indexOf(transactionConfig.manualColName);
 
   if(descIndex < 0) {
-    return 'Missing column titled: "' + transactionConfig.descColName + '" on transaction sheet.';
+    return [0, 'Missing column titled: "' + transactionConfig.descColName + '" on transaction sheet.'];
   }
   if(vendorIndex < 0) {
-    return 'Missing column titled: "' + transactionConfig.vendorColName + '" on transaction sheet.';
+    return [0, 'Missing column titled: "' + transactionConfig.vendorColName + '" on transaction sheet.'];
   }
   if(catIndex < 0) {
-    return 'Missing column titled: "' + transactionConfig.catColName + '" on transaction sheet.';
+    return [0, 'Missing column titled: "' + transactionConfig.catColName + '" on transaction sheet.'];
   }
   if(manualIndex < 0) {
-    return 'Missing column title: "' + transactionConfig.manualColName + '" on transaction sheet'
+    return [0, 'Missing column title: "' + transactionConfig.manualColName + '" on transaction sheet']
   }
 
+  let changeCount = 0;
   for(let r = 1; r < transactions.length; r++) {
     row = transactions[r];
     currVendorCell = row[vendorIndex];
@@ -66,14 +67,18 @@ function categorizeTransactions(transactions, transactionConfig, vendors) {
     desc = row[descIndex];
     isManualEntry = row[manualIndex];
 
-    if(isManualEntry || !desc) {
+    if(isManualEntry) {
       continue;
     }
     
     vendor = vendors.find(v => v.pattern.test(desc))
-    row[vendorIndex] = vendor?.name;
-    row[catIndex] = vendor?.category;
+    if (row[vendorIndex] != vendor?.name || row[catIndex] != vendor?.category) {
+      row[vendorIndex] = vendor?.name;
+      row[catIndex] = vendor?.category;
+      changeCount++
+    }
   }
+  return [changeCount, null]
 }
 
 // Public: Categorize all values, unless category or vendor is already set.
@@ -101,10 +106,11 @@ function categorizeAll(
     catColName: catColName,
     manualColName: manualColName
   };
-  error = categorizeTransactions(transactions, transactionConfig, vendors);
-  if(error) {
+  let [changeCount, ct_error] = categorizeTransactions(transactions, transactionConfig, vendors);
+  if(ct_error) {
     SpreadsheetApp.getUi().alert('Error categorizing transactions: ' + error);
   }
   
   dataRange.setValues(transactions);
+  SpreadsheetApp.getUi().alert("Changed " + changeCount + " rows.");
 }
