@@ -72,9 +72,9 @@ function categorizeTransactions(transactions, transactionConfig, vendors) {
     }
     
     vendor = vendors.find(v => v.pattern.test(desc))
-    if (row[vendorIndex] != vendor?.name || row[catIndex] != vendor?.category) {
-      row[vendorIndex] = vendor?.name;
-      row[catIndex] = vendor?.category;
+    if (vendor && (row[vendorIndex] != vendor.name || row[catIndex] != vendor.category)) {
+      row[vendorIndex] = vendor.name;
+      row[catIndex] = vendor.category;
       changeCount++
     }
   }
